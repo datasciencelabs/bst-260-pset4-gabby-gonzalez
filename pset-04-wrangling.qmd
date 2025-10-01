@@ -164,20 +164,18 @@ url <- "https://github.com/datasciencelabs/2025/raw/refs/heads/main/data/regions
 # regions <- use jsonlit JSON parser 
 # regions <- convert list to data frame. You can use map_df in purrr package
 
-regions<-fromJSON(url) |>
-  map_df(bind_rows)
 
+regions<-fromJSON(url, simplifyVector = FALSE) |>
+  map_df(function(x) {
+  tibble(
+    region = x[[ "region" ]],
+    region_name = x[[ "region_name" ]],
+    state_name = x[[ "states" ]]
+  )}) |>
+  unnest(state_name) |>
+  mutate(region_name= ifelse(region_name =="New York and New Jersey, Puerto Rico, Virgin Islands", "NY/NJ/PR/VI", region_name)) 
 
-  rename(state_name=states) |>
-
-  
-  
-  
-  unnest(state_name) ##WRONG FUNCTION NEED TO USE map_df
-?fromJSON
-?map_df
-regions
-
+class(regions$reg_name)
 
 ```
 
@@ -185,11 +183,9 @@ regions
 
 ```{r}
 
-population2 <- population |>
-  mutate(region=regions[match(state_name,regions$state_name)])
-
-         
-         
+population <- population |> 
+  left_join(regions)
+  
 ```
 
 
@@ -222,10 +218,7 @@ cases_raw <-  request(api) |> req_url_query(`$limit` = 10000000000) |>
   rename(date=end_date, cases=new_cases)|>
   mutate(cases=as.numeric(cases),
          date=as.Date(date))
-
-#dates are already in ISO-8601 format
   
-  class(cases_raw$date)
 
 
 ```
@@ -234,39 +227,42 @@ cases_raw <-  request(api) |> req_url_query(`$limit` = 10000000000) |>
 12. For 2020 and 2021, make a time series plot of cases per 100,000 versus time for each state. Stratify the plot by region name. Make sure to label you graph appropriately. 
 
 ```{r}
-#cases |> 
 
-# need to join with population dataset -- then get region -- then get cases/100,000
-
-?str_detect
 cases_raw |> 
-  mutate(cases_per=cases/100,000) |>
-  # str_subset(date, "2023-") |>
-  ggplot(aes(x=date, y=cases_per, group=state)) +
-  geom_line() 
-  facet_wrap(state)
-
-
-
+  mutate(year = as.character(year(date))) |>                  # 
+  filter(year %in% c("2020", "2021")) |>
+  right_join(population, by = c("state", "year")) |>
+  mutate(cases_per=100000*(cases/population)) |>
+  ggplot(aes(x=date, y=cases_per, color=state)) +
+  geom_line() +
+  labs(title = "Time Series Plot for Covid-19 Cases per 100,000", y = "Cases per 100,000", x="Date", color = "State Abbreviation")+
+  theme_linedraw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  facet_wrap(~region_name, nrow=5)
 
 ```
 
 13. The dates in the `cases` dataset are stored as character strings. Use the **lubridate** package to properly parse the `date` column, then create a summary table showing the total COVID-19 cases by month and year for 2020 and 2021. The table should have columns for year, month (as month name), and total cases across all states. Order by year and month. Use the **knitr** package and `kable()` function to display the results as a formatted table.
 
 ```{r}
-cases_raw |> 
-  tibble(state=state, cases=cases, date = date, month = month(date), year = year(date))
+library(knitr)
 
+cases_raw |>
+  #I already changed date from a character string in an earlier step
+  mutate(year = year(date),
+         month = month(date, label=TRUE)) |>
+  group_by(year, month)|>
+  summarise(Total_Covid_Cases=sum(cases)) |>
+  arrange(year, month) |>
+  kable(col.names = c("Year","Month", "Total Covid Cases"))
 
-
-
-?lubridate
 ```
 
 14. The following URL provides additional COVID-19 data from the CDC in JSON format:
 
 ```{r}
 deaths_url <- "https://data.cdc.gov/resource/9bhg-hcku.json"
+
 ```
 
 Use **httr2** to download COVID-19 death data from this endpoint. Make sure to remove the default limit to get all available data. Create a clean dataset called `deaths` with columns `state`, `date`, and `deaths` (renamed from the original column name). Ensure dates are in proper Date format and deaths are numeric.
@@ -278,15 +274,26 @@ deaths<-request(deaths_url) |> req_url_query(`$limit` = 10000000000) |>
   resp_body_json(simplifyVector = TRUE) |>
   select(state, covid_19_deaths, end_date) |>
   rename(deaths=covid_19_deaths, date=end_date) |>
-  mutate(deaths=as.numeric(deaths))
+  mutate(deaths=as.numeric(deaths),
+         date=as.Date(date))
 
-
-str(deaths)
 
 ```
 
 15. Using the `deaths` dataset you created, make a bar plot showing the total COVID-19 deaths by state. Show only the top 10 states with the highest death counts. Order the bars from highest to lowest and use appropriate labels and title.
 
 ```{r}
-# Your code here
+deaths |>
+  filter(state != "United States") |>
+  group_by(state) |>
+  summarize(total=sum(deaths, na.rm=TRUE)) |>
+  arrange(desc(total)) |>
+  head(10) |>
+  ggplot(aes(x=reorder(state, -total), y=total, fill=state))+
+  geom_col(show.legend = FALSE)  +
+  labs(title = "Top 10 Highest Covid Deaths by State", y = "Total Deaths (2020-2023)", x="State")+
+  theme_linedraw()+
+  theme(axis.title = element_text(hjust = 0.5, face = "bold"), plot.title = element_text(hjust = 0.5, face = "bold"))
+
+
 ```
