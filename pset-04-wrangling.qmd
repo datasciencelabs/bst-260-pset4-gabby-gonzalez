@@ -121,12 +121,7 @@ population<-population1 |>
 7. As a check, make a barplot of states' 2021 and 2022 populations. Show the state names in the y-axis ordered by population size.  Hint: You will need to use `reorder` and use `facet_wrap`.
 
 ```{r}
-# population |> 
-  # reorder state
-  # assign aesthetic mapping
-  # use geom_col to plot barplot
-  # flip coordinates
-  # facet by year
+
 
 library(ggplot2)
 
@@ -137,11 +132,6 @@ population |>
   facet_wrap(~year) +
   labs(x = "State", y = "Population", title = "Population") +
     theme_classic()
-
-
-
-
-
 
 ```
 
@@ -182,10 +172,8 @@ class(regions$reg_name)
 9. Add a region and region name columns to the `population` data frame.
 
 ```{r}
-
 population <- population |> 
   left_join(regions)
-  
 ```
 
 
@@ -277,15 +265,16 @@ deaths<-request(deaths_url) |> req_url_query(`$limit` = 10000000000) |>
   mutate(deaths=as.numeric(deaths),
          date=as.Date(date))
 
-
 ```
 
 15. Using the `deaths` dataset you created, make a bar plot showing the total COVID-19 deaths by state. Show only the top 10 states with the highest death counts. Order the bars from highest to lowest and use appropriate labels and title.
 
 ```{r}
+
 deaths |>
   filter(state != "United States") |>
   group_by(state) |>
+  filter(state!="New York City") |>
   summarize(total=sum(deaths, na.rm=TRUE)) |>
   arrange(desc(total)) |>
   head(10) |>
