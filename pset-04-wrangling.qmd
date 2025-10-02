@@ -128,7 +128,7 @@ population<-population1 |>
 
 7. As a check, make a barplot of states' 2021 and 2022 populations. Show the state names in the y-axis ordered by population size.  Hint: You will need to use `reorder` and use `facet_wrap`.
 
-```{r, fig.width=7,fig.height=8}
+```{r, fig.width=10,fig.height=7}
 
 
 library(ggplot2)
