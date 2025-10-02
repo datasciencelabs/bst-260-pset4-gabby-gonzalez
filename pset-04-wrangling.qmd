@@ -114,22 +114,11 @@ population<-population1 |>
   mutate(population=as.numeric(population)) #make pop var numeric
 
 
-
-#population <- population |> ## Use janitor row to names function
-  # convert to tibble
-  # remove stat column
-  # rename state column to state_name
-  # use pivot_longer to tidy
-  # remove POP_ from year
-  # parese all relevant colunns to numeric
-  # add state abbreviations using state.abb variable
-  # use case_when to add abbreviations for DC and PR
 ```
 
 7. As a check, make a barplot of states' 2021 and 2022 populations. Show the state names in the y-axis ordered by population size.  Hint: You will need to use `reorder` and use `facet_wrap`.
 
 ```{r, fig.width=10,fig.height=7}
-
 
 library(ggplot2)
 
@@ -159,16 +148,13 @@ points to a JSON file that lists the states in the 10 Public Health Service (PHS
 library(jsonlite)
 library(purrr)
 url <- "https://github.com/datasciencelabs/2025/raw/refs/heads/main/data/regions.json"
-# regions <- use jsonlit JSON parser 
-# regions <- convert list to data frame. You can use map_df in purrr package
-
 
 regions<-fromJSON(url, simplifyVector = FALSE) |>
   map_df(function(x) {
   tibble(
-    region = x[[ "region" ]],
-    region_name = x[[ "region_name" ]],
-    state_name = x[[ "states" ]]
+    region = x[["region"]],
+    region_name = x[["region_name"]],
+    state_name = x[["states"]]
   )}) |>
   unnest(state_name) |>
   mutate(region_name= ifelse(region_name =="New York and New Jersey, Puerto Rico, Virgin Islands", "NY/NJ/PR/VI", region_name)) 
