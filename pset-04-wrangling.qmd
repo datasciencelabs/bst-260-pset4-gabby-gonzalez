@@ -25,7 +25,7 @@ Write a first line of code for your problem set that defines `census_key` by run
 
 ```{r}
 source("census-key.R")
-census_key 
+
 ```
 
 2. The [US Census API User Guide](https://www.census.gov/content/dam/Census/data/developers/api-user-guide/api-user-guide.pdf)
